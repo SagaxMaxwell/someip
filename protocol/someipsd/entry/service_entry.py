@@ -1,4 +1,8 @@
+__all__ = ["ServiceEntry"]
+
+
 from bitarray import bitarray
+from bitarray.util import ba2int
 
 
 class ServiceEntry:
@@ -116,31 +120,21 @@ class ServiceEntry:
 
     @classmethod
     def decode(cls, series: bytes) -> "ServiceEntry":
-        """Decode bytes into an Entry object."""
+        """Decode bytes into a ServiceEntry object."""
         if len(series) != 16:
             raise ValueError("Invalid entry length")
         packet = bitarray()
         packet.frombytes(series)
-        type_field = int(packet[:8].to01(), 2)
-        packet = packet[8:]
-        index_first_option_run = int(packet[:8].to01(), 2)
-        packet = packet[8:]
-        index_second_option_run = int(packet[:8].to01(), 2)
-        packet = packet[8:]
-        number_of_options_1 = packet[:4]
-        packet = packet[4:]
-        number_of_options_2 = packet[:4]
-        packet = packet[4:]
-        service_id = int(packet[:16].to01(), 2)
-        packet = packet[16:]
-        instance_id = int(packet[:16].to01(), 2)
-        packet = packet[16:]
-        major_version = int(packet[:8].to01(), 2)
-        packet = packet[8:]
-        ttl = int(packet[:24].to01(), 2)
-        packet = packet[24:]
-        minor_version = int(packet[:32].to01(), 2)
-        packet = packet[32:]
+        type_field = ba2int(packet[:8])
+        index_first_option_run = ba2int(packet[8:16])
+        index_second_option_run = ba2int(packet[16:24])
+        number_of_options_1 = packet[24:28]
+        number_of_options_2 = packet[28:32]
+        service_id = ba2int(packet[32:48])
+        instance_id = ba2int(packet[48:64])
+        major_version = ba2int(packet[64:72])
+        ttl = ba2int(packet[72:96])
+        minor_version = ba2int(packet[96:128])
         return cls(
             type_field=type_field,
             index_first_option_run=index_first_option_run,
@@ -167,15 +161,15 @@ class ServiceEntry:
     def __repr__(self):
         return "\n".join(
             (
-                f"{'type field':<20}: 0x{self.type_field:02X}",
-                f"{'index first option run':<20}: 0x{self.index_first_option_run:02X}",
-                f"{'index second option run':<20}: 0x{self.index_second_option_run:02X}",
-                f"{'number of options 1':<20}: {self.number_of_options_1}",
-                f"{'number of options 2':<20}: {self.number_of_options_2}",
-                f"{'service id':<20}: 0x{self.service_id:04X}",
-                f"{'instance id':<20}: 0x{self.instance_id:04X}",
-                f"{'major version':<20}: 0x{self.major_version:02X}",
-                f"{'ttl':<20}: 0x{self.ttl:06X}",
-                f"{'minor version':<20}: 0x{self.minor_version:08X}",
+                f"{'type field':<32}: 0x{self.type_field:02X}",
+                f"{'index first option run':<32}: 0x{self.index_first_option_run:02X}",
+                f"{'index second option run':<32}: 0x{self.index_second_option_run:02X}",
+                f"{'number of options 1':<32}: {self.number_of_options_1}",
+                f"{'number of options 2':<32}: {self.number_of_options_2}",
+                f"{'service id':<32}: 0x{self.service_id:04X}",
+                f"{'instance id':<32}: 0x{self.instance_id:04X}",
+                f"{'major version':<32}: 0x{self.major_version:02X}",
+                f"{'ttl':<32}: 0x{self.ttl:06X}",
+                f"{'minor version':<32}: 0x{self.minor_version:08X}",
             )
         )

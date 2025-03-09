@@ -1,4 +1,8 @@
+__all__ = ["EventgroupEntry"]
+
+
 from bitarray import bitarray
+from bitarray.util import ba2int
 
 
 class EventgroupEntry:
@@ -12,7 +16,6 @@ class EventgroupEntry:
         "__instance_id",
         "__major_version",
         "__ttl",
-        "__reserved",
         "__counter",
         "__eventgroup_id",
     )
@@ -28,7 +31,6 @@ class EventgroupEntry:
         instance_id: int,
         major_version: int,
         ttl: int,
-        reserved: bitarray,
         counter: bitarray,
         eventgroup_id: int,
     ):
@@ -41,7 +43,6 @@ class EventgroupEntry:
         self.__validate_bit("Instance ID", instance_id, 16)
         self.__validate_bit("Major Version", major_version, 8)
         self.__validate_bit("TTL", ttl, 24)
-        self.__validate_bit("Reserved", reserved, 12)
         self.__validate_bit("Counter", counter, 4)
         self.__validate_bit("Eventgroup ID", eventgroup_id, 16)
 
@@ -54,7 +55,6 @@ class EventgroupEntry:
         self.__instance_id = instance_id
         self.__major_version = major_version
         self.__ttl = ttl
-        self.__reserved = reserved
         self.__counter = counter
         self.__eventgroup_id = eventgroup_id
 
@@ -95,10 +95,6 @@ class EventgroupEntry:
         return self.__ttl
 
     @property
-    def reserved(self) -> bitarray:
-        return self.__reserved
-
-    @property
     def counter(self) -> bitarray:
         return self.__counter
 
@@ -120,7 +116,7 @@ class EventgroupEntry:
                 self.instance_id,
                 self.major_version,
                 self.ttl,
-                self.reserved,
+                bitarray("0" * 12),
                 self.counter,
                 self.eventgroup_id,
             ),
@@ -139,30 +135,17 @@ class EventgroupEntry:
             raise ValueError("Invalid entry length")
         packet = bitarray()
         packet.frombytes(series)
-        type_field = int(packet[:8].to01(), 2)
-        packet = packet[8:]
-        index_first_option_run = int(packet[:8].to01(), 2)
-        packet = packet[8:]
-        index_second_option_run = int(packet[:8].to01(), 2)
-        packet = packet[8:]
-        number_of_options_1 = packet[:4]
-        packet = packet[4:]
-        number_of_options_2 = packet[:4]
-        packet = packet[4:]
-        service_id = int(packet[:16].to01(), 2)
-        packet = packet[16:]
-        instance_id = int(packet[:16].to01(), 2)
-        packet = packet[16:]
-        major_version = int(packet[:8].to01(), 2)
-        packet = packet[8:]
-        ttl = int(packet[:24].to01(), 2)
-        packet = packet[24:]
-        reserved = packet[:12]
-        packet = packet[12:]
-        counter = packet[:4]
-        packet = packet[4:]
-        eventgroup_id = int(packet[:16].to01(), 2)
-        packet = packet[16:]
+        type_field = ba2int(packet[:8])
+        index_first_option_run = ba2int(packet[8:16])
+        index_second_option_run = ba2int(packet[16:24])
+        number_of_options_1 = packet[24:28]
+        number_of_options_2 = packet[28:32]
+        service_id = ba2int(packet[32:48])
+        instance_id = ba2int(packet[48:64])
+        major_version = ba2int(packet[64:72])
+        ttl = ba2int(packet[72:96])
+        counter = packet[108:112]
+        eventgroup_id = ba2int(packet[112:128])
         return cls(
             type_field=type_field,
             index_first_option_run=index_first_option_run,
@@ -173,7 +156,6 @@ class EventgroupEntry:
             instance_id=instance_id,
             major_version=major_version,
             ttl=ttl,
-            reserved=reserved,
             counter=counter,
             eventgroup_id=eventgroup_id,
         )
@@ -191,17 +173,16 @@ class EventgroupEntry:
     def __repr__(self):
         return "\n".join(
             (
-                f"{'type field':<20}: 0x{self.type_field:02X}",
-                f"{'index first option run':<20}: 0x{self.index_first_option_run:02X}",
-                f"{'index second option run':<20}: 0x{self.index_second_option_run:02X}",
-                f"{'number of options 1':<20}: {self.number_of_options_1}",
-                f"{'number of options 2':<20}: {self.number_of_options_2}",
-                f"{'service id':<20}: 0x{self.service_id:04X}",
-                f"{'instance id':<20}: 0x{self.instance_id:04X}",
-                f"{'major version':<20}: 0x{self.major_version:02X}",
-                f"{'ttl':<20}: 0x{self.ttl:06X}",
-                f"{'reserved':<20}: {self.reserved}",
-                f"{'counter':<20}: {self.counter}",
-                f"{'eventgroup id':<20}: 0x{self.eventgroup_id:04X}",
+                f"{'type field':<32}: 0x{self.type_field:02X}",
+                f"{'index first option run':<32}: 0x{self.index_first_option_run:02X}",
+                f"{'index second option run':<32}: 0x{self.index_second_option_run:02X}",
+                f"{'number of options 1':<32}: {self.number_of_options_1}",
+                f"{'number of options 2':<32}: {self.number_of_options_2}",
+                f"{'service id':<32}: 0x{self.service_id:04X}",
+                f"{'instance id':<32}: 0x{self.instance_id:04X}",
+                f"{'major version':<32}: 0x{self.major_version:02X}",
+                f"{'ttl':<32}: 0x{self.ttl:06X}",
+                f"{'counter':<32}: {self.counter}",
+                f"{'eventgroup id':<32}: 0x{self.eventgroup_id:04X}",
             )
         )

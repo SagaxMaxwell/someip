@@ -4,6 +4,9 @@
 Created on Tue Mar  2 14:00:00 2021
 """
 
+__all__ = ["Packet"]
+
+
 import struct
 
 
@@ -163,14 +166,14 @@ class Packet:
     def __repr__(self):
         return "\n".join(
             (
-                f"{'service_id':<20}: 0x{self.service_id:04X}",
-                f"{'method_id':<20}: 0x{self.method_id:04X}",
-                f"{'client_id':<20}: 0x{self.client_id:04X}",
-                f"{'session_id':<20}: 0x{self.session_id:04X}",
-                f"{'protocol_version':<20}: 0x{self.protocol_version:02X}",
-                f"{'interface_version':<20}: 0x{self.interface_version:02X}",
-                f"{'message_type':<20}: 0x{self.message_type:02X}",
-                f"{'return_code':<20}: 0x{self.return_code:02X}",
-                f"{'payload':<20}: {self.payload.hex()}",
+                f"{'service id':<32}: 0x{self.service_id:04X}",
+                f"{'method id':<32}: 0x{self.method_id:04X}",
+                f"{'client id':<32}: 0x{self.client_id:04X}",
+                f"{'session id':<32}: 0x{self.session_id:04X}",
+                f"{'protocol version':<32}: 0x{self.protocol_version:02X}",
+                f"{'interface version':<32}: 0x{self.interface_version:02X}",
+                f"{'message type':<32}: 0x{self.message_type:02X}",
+                f"{'return code':<32}: 0x{self.return_code:02X}",
+                f"{'payload':<32}: {self.payload}",
             )
         )

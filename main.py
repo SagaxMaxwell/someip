@@ -1,5 +1,9 @@
 from dotenv import load_dotenv
 
+
+from core.builder import Builder
+
+
 if __name__ == "__main__":
     load_dotenv(override=True)
     print("Hello, world!")
