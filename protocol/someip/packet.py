@@ -8,6 +8,7 @@ __all__ = ["Packet"]
 
 
 import struct
+from tkinter import N
 
 
 class Packet:
@@ -50,7 +51,7 @@ class Packet:
         message_type: int,
         return_code: int,
         payload: bytes,
-    ):
+    ) -> None:
         self.__validate_bit("Service ID", service_id, 16)
         self.__validate_bit("Method ID", method_id, 16)
         self.__validate_bit("Client ID", client_id, 16)
@@ -158,12 +159,12 @@ class Packet:
         )
 
     @staticmethod
-    def __validate_bit(name: str, value: int, bits: int):
+    def __validate_bit(name: str, value: int, bits: int) -> None:
         max_value = (1 << bits) - 1
         if not (0 <= value <= max_value):
             raise ValueError(f"{name} must be a {bits}-bit unsigned integer")
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "\n".join(
             (
                 f"{'service id':<32}: 0x{self.service_id:04X}",

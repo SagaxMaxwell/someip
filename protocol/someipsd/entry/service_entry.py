@@ -31,7 +31,7 @@ class ServiceEntry:
         major_version: int,
         ttl: int,
         minor_version: int,
-    ):
+    ) -> None:
         self.__validate_bit("Entry Type", type_field, 8)
         self.__validate_bit("Index First Option Run", index_first_option_run, 8)
         self.__validate_bit("Index Second Option Run", index_second_option_run, 8)
@@ -149,7 +149,7 @@ class ServiceEntry:
         )
 
     @staticmethod
-    def __validate_bit(name: str, value: int | bitarray, bits: int):
+    def __validate_bit(name: str, value: int | bitarray, bits: int) -> None:
         if isinstance(value, int):
             max_value = (1 << bits) - 1
             if not (0 <= value <= max_value):
@@ -158,7 +158,7 @@ class ServiceEntry:
             if len(value) != bits:
                 raise ValueError(f"{name} must be a {bits}-bit bitarray")
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "\n".join(
             (
                 f"{'type field':<32}: 0x{self.type_field:02X}",

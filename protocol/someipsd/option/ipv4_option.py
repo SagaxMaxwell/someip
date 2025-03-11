@@ -30,7 +30,7 @@ class IPv4Option:
         ipv4_address: str,
         transport_protocol: int,
         transport_protocol_port_number: int,
-    ):
+    ) -> None:
         self.__validate_bit("Type", type, 8)
         self.__validate_bit("Discardable Flag", discardable_flag, 1)
         self.__validate_bit("Transport Protocol", transport_protocol, 8)
@@ -112,7 +112,7 @@ class IPv4Option:
         )
 
     @staticmethod
-    def __validate_bit(name: str, value: int | bitarray, bits: int):
+    def __validate_bit(name: str, value: int | bitarray, bits: int) -> None:
         if isinstance(value, int):
             max_value = (1 << bits) - 1
             if not (0 <= value <= max_value):
@@ -122,11 +122,11 @@ class IPv4Option:
                 raise ValueError(f"{name} must be a {bits}-bit bitarray")
 
     @staticmethod
-    def __validate_ipv4_address(ipv4_address: str):
+    def __validate_ipv4_address(ipv4_address: str) -> None:
         if ipaddress.ip_address(ipv4_address).version != 4:
             raise ValueError("Invalid ipv4 address")
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "\n".join(
             (
                 f"{'length':<32}: 0x{self.length:04X}",
