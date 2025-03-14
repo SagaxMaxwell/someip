@@ -1,18 +1,22 @@
-__all__ = ["Env"]
+__all__ = ["Environment"]
+
+
+from pathlib import Path
+from logging import Formatter
 
 
 from tools import singleton
 
 
 @singleton
-class Env:
+class Environment:
     def __init__(
         self,
-        config_path: str,
+        config_path: Path,
         log_name: str,
-        log_path: str,
-        log_level: str,
-        log_format: str,
+        log_path: Path,
+        log_level: int,
+        log_format: Formatter,
     ) -> None:
         self.__config_path = config_path
         self.__log_name = log_name
@@ -21,7 +25,7 @@ class Env:
         self.__log_format = log_format
 
     @property
-    def config_path(self) -> str:
+    def config_path(self) -> Path:
         return self.__config_path
 
     @property
@@ -29,13 +33,13 @@ class Env:
         return self.__log_name
 
     @property
-    def log_path(self) -> str:
+    def log_path(self) -> Path:
         return self.__log_path
 
     @property
-    def log_level(self) -> str:
+    def log_level(self) -> int:
         return self.__log_level
 
     @property
-    def log_format(self) -> str:
+    def log_format(self) -> Formatter:
         return self.__log_format
