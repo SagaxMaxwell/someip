@@ -5,7 +5,7 @@ from pathlib import Path
 from logging import Formatter
 
 
-from tools import singleton
+from util import singleton
 
 
 @singleton

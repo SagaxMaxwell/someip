@@ -8,7 +8,6 @@ __all__ = ["Packet"]
 
 
 import struct
-from tkinter import N
 
 
 class Packet:
