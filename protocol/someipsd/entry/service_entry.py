@@ -6,6 +6,26 @@ from bitarray.util import ba2int
 
 
 class ServiceEntry:
+    """Represents a service entry in a protocol.
+
+    This class encapsulates the structure of a service entry, including various
+    fields such as type, indices, options, service identifiers, versions, and other
+    attributes related to the service entry. It supports encoding and decoding the
+    entry from and to byte representation.
+
+    Attributes:
+        type_field (int): Type of the entry (8 bits).
+        index_first_option_run (int): Index of the first option run (8 bits).
+        index_second_option_run (int): Index of the second option run (8 bits).
+        number_of_options_1 (bitarray): Number of options in the first option run (4 bits).
+        number_of_options_2 (bitarray): Number of options in the second option run (4 bits).
+        service_id (int): Service identifier (16 bits).
+        instance_id (int): Instance identifier (16 bits).
+        major_version (int): Major version number (8 bits).
+        ttl (int): Time-to-live (TTL) value (24 bits).
+        minor_version (int): Minor version number (32 bits).
+    """
+
     __slots__ = (
         "__type_field",
         "__index_first_option_run",
@@ -32,6 +52,20 @@ class ServiceEntry:
         ttl: int,
         minor_version: int,
     ) -> None:
+        """Initializes the ServiceEntry object with the provided field values.
+
+        Args:
+            type_field (int): Type of the entry (8 bits).
+            index_first_option_run (int): Index of the first option run (8 bits).
+            index_second_option_run (int): Index of the second option run (8 bits).
+            number_of_options_1 (bitarray): Number of options in the first option run (4 bits).
+            number_of_options_2 (bitarray): Number of options in the second option run (4 bits).
+            service_id (int): Service identifier (16 bits).
+            instance_id (int): Instance identifier (16 bits).
+            major_version (int): Major version number (8 bits).
+            ttl (int): Time-to-live (TTL) value (24 bits).
+            minor_version (int): Minor version number (32 bits).
+        """
         self.__validate_bit("Entry Type", type_field, 8)
         self.__validate_bit("Index First Option Run", index_first_option_run, 8)
         self.__validate_bit("Index Second Option Run", index_second_option_run, 8)
@@ -56,46 +90,100 @@ class ServiceEntry:
 
     @property
     def type_field(self) -> int:
+        """Returns the type field of the service entry.
+
+        Returns:
+            int: The type field (8 bits).
+        """
         return self.__type_field
 
     @property
     def index_first_option_run(self) -> int:
+        """Returns the index of the first option run.
+
+        Returns:
+            int: The index of the first option run (8 bits).
+        """
         return self.__index_first_option_run
 
     @property
     def index_second_option_run(self) -> int:
+        """Returns the index of the second option run.
+
+        Returns:
+            int: The index of the second option run (8 bits).
+        """
         return self.__index_second_option_run
 
     @property
     def number_of_options_1(self) -> bitarray:
+        """Returns the number of options in the first option run.
+
+        Returns:
+            bitarray: The number of options (4 bits).
+        """
         return self.__number_of_options_1
 
     @property
     def number_of_options_2(self) -> bitarray:
+        """Returns the number of options in the second option run.
+
+        Returns:
+            bitarray: The number of options (4 bits).
+        """
         return self.__number_of_options_2
 
     @property
     def service_id(self) -> int:
+        """Returns the service identifier.
+
+        Returns:
+            int: The service ID (16 bits).
+        """
         return self.__service_id
 
     @property
     def instance_id(self) -> int:
+        """Returns the instance identifier.
+
+        Returns:
+            int: The instance ID (16 bits).
+        """
         return self.__instance_id
 
     @property
     def major_version(self) -> int:
+        """Returns the major version.
+
+        Returns:
+            int: The major version (8 bits).
+        """
         return self.__major_version
 
     @property
     def ttl(self) -> int:
+        """Returns the time-to-live (TTL).
+
+        Returns:
+            int: The TTL value (24 bits).
+        """
         return self.__ttl
 
     @property
     def minor_version(self) -> int:
+        """Returns the minor version.
+
+        Returns:
+            int: The minor version (32 bits).
+        """
         return self.__minor_version
 
     def encode(self) -> bytes:
-        """Encode the entry to bytes."""
+        """Encodes the service entry into bytes.
+
+        Returns:
+            bytes: The byte representation of the service entry.
+        """
         packet = bitarray()
         for field, bits in zip(
             (
@@ -120,7 +208,17 @@ class ServiceEntry:
 
     @classmethod
     def decode(cls, series: bytes) -> "ServiceEntry":
-        """Decode bytes into a ServiceEntry object."""
+        """Decodes a byte series into a ServiceEntry object.
+
+        Args:
+            series (bytes): The byte series representing the service entry.
+
+        Returns:
+            ServiceEntry: The decoded service entry object.
+
+        Raises:
+            ValueError: If the byte series has an invalid length.
+        """
         if len(series) != 16:
             raise ValueError("Invalid entry length")
         packet = bitarray()
@@ -150,6 +248,16 @@ class ServiceEntry:
 
     @staticmethod
     def __validate_bit(name: str, value: int | bitarray, bits: int) -> None:
+        """Validates that a value fits within the specified bit length.
+
+        Args:
+            name (str): The name of the field being validated.
+            value (int | bitarray): The value to validate.
+            bits (int): The expected bit length.
+
+        Raises:
+            ValueError: If the value does not fit within the specified bit length.
+        """
         if isinstance(value, int):
             max_value = (1 << bits) - 1
             if not (0 <= value <= max_value):
@@ -159,6 +267,11 @@ class ServiceEntry:
                 raise ValueError(f"{name} must be a {bits}-bit bitarray")
 
     def __repr__(self) -> str:
+        """Returns a string representation of the ServiceEntry object.
+
+        Returns:
+            str: The string representation of the object.
+        """
         return "\n".join(
             (
                 f"{'type field':<32}: 0x{self.type_field:02X}",

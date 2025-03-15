@@ -6,6 +6,27 @@ from bitarray.util import ba2int
 
 
 class EventgroupEntry:
+    """Represents an event group entry in a protocol.
+
+    This class encapsulates the structure of an event group entry, including
+    various fields such as type, indices, options, and other attributes related
+    to the event group. It supports encoding and decoding the entry from and to
+    byte representation.
+
+    Attributes:
+        type_field (int): Type of the entry (8 bits).
+        index_first_option_run (int): Index of the first option run (8 bits).
+        index_second_option_run (int): Index of the second option run (8 bits).
+        number_of_options_1 (bitarray): Number of options in the first option run (4 bits).
+        number_of_options_2 (bitarray): Number of options in the second option run (4 bits).
+        service_id (int): Service identifier (16 bits).
+        instance_id (int): Instance identifier (16 bits).
+        major_version (int): Major version number (8 bits).
+        ttl (int): Time-to-live (TTL) value (24 bits).
+        counter (bitarray): Counter value (4 bits).
+        eventgroup_id (int): Event group identifier (16 bits).
+    """
+
     __slots__ = (
         "__type_field",
         "__index_first_option_run",
@@ -34,6 +55,21 @@ class EventgroupEntry:
         counter: bitarray,
         eventgroup_id: int,
     ) -> None:
+        """Initializes the EventgroupEntry object with the provided field values.
+
+        Args:
+            type_field (int): Type of the entry (8 bits).
+            index_first_option_run (int): Index of the first option run (8 bits).
+            index_second_option_run (int): Index of the second option run (8 bits).
+            number_of_options_1 (bitarray): Number of options in the first option run (4 bits).
+            number_of_options_2 (bitarray): Number of options in the second option run (4 bits).
+            service_id (int): Service identifier (16 bits).
+            instance_id (int): Instance identifier (16 bits).
+            major_version (int): Major version number (8 bits).
+            ttl (int): Time-to-live (TTL) value (24 bits).
+            counter (bitarray): Counter value (4 bits).
+            eventgroup_id (int): Event group identifier (16 bits).
+        """
         self.__validate_bit("Entry Type", type_field, 8)
         self.__validate_bit("Index First Option Run", index_first_option_run, 8)
         self.__validate_bit("Index Second Option Run", index_second_option_run, 8)
@@ -60,50 +96,109 @@ class EventgroupEntry:
 
     @property
     def type_field(self) -> int:
+        """Returns the type field of the event group entry.
+
+        Returns:
+            int: The type field (8 bits).
+        """
         return self.__type_field
 
     @property
     def index_first_option_run(self) -> int:
+        """Returns the index of the first option run.
+
+        Returns:
+            int: The index of the first option run (8 bits).
+        """
         return self.__index_first_option_run
 
     @property
     def index_second_option_run(self) -> int:
+        """Returns the index of the second option run.
+
+        Returns:
+            int: The index of the second option run (8 bits).
+        """
         return self.__index_second_option_run
 
     @property
     def number_of_options_1(self) -> bitarray:
+        """Returns the number of options in the first option run.
+
+        Returns:
+            bitarray: The number of options (4 bits).
+        """
         return self.__number_of_options_1
 
     @property
     def number_of_options_2(self) -> bitarray:
+        """Returns the number of options in the second option run.
+
+        Returns:
+            bitarray: The number of options (4 bits).
+        """
         return self.__number_of_options_2
 
     @property
     def service_id(self) -> int:
+        """Returns the service identifier.
+
+        Returns:
+            int: The service ID (16 bits).
+        """
         return self.__service_id
 
     @property
     def instance_id(self) -> int:
+        """Returns the instance identifier.
+
+        Returns:
+            int: The instance ID (16 bits).
+        """
         return self.__instance_id
 
     @property
     def major_version(self) -> int:
+        """Returns the major version.
+
+        Returns:
+            int: The major version (8 bits).
+        """
         return self.__major_version
 
     @property
     def ttl(self) -> int:
+        """Returns the time-to-live (TTL).
+
+        Returns:
+            int: The TTL value (24 bits).
+        """
         return self.__ttl
 
     @property
     def counter(self) -> bitarray:
+        """Returns the counter value.
+
+        Returns:
+            bitarray: The counter value (4 bits).
+        """
         return self.__counter
 
     @property
     def eventgroup_id(self) -> int:
+        """Returns the event group identifier.
+
+        Returns:
+            int: The event group ID (16 bits).
+        """
         return self.__eventgroup_id
 
     def encode(self) -> bytes:
-        """Encode the entry to bytes."""
+        """Encodes the event group entry into bytes.
+
+        Returns:
+            bytes: The byte representation of the event group entry.
+        """
         packet = bitarray()
         for field, bits in zip(
             (
@@ -130,7 +225,17 @@ class EventgroupEntry:
 
     @classmethod
     def decode(cls, series: bytes) -> "EventgroupEntry":
-        """Decode bytes into an EventgroupEntry object."""
+        """Decodes a byte series into an EventgroupEntry object.
+
+        Args:
+            series (bytes): The byte series representing the event group entry.
+
+        Returns:
+            EventgroupEntry: The decoded event group entry object.
+
+        Raises:
+            ValueError: If the byte series has an invalid length.
+        """
         if len(series) != 16:
             raise ValueError("Invalid entry length")
         packet = bitarray()
@@ -162,6 +267,16 @@ class EventgroupEntry:
 
     @staticmethod
     def __validate_bit(name: str, value: int | bitarray, bits: int) -> None:
+        """Validates that a value fits within the specified bit length.
+
+        Args:
+            name (str): The name of the field being validated.
+            value (int | bitarray): The value to validate.
+            bits (int): The expected bit length.
+
+        Raises:
+            ValueError: If the value does not fit within the specified bit length.
+        """
         if isinstance(value, int):
             max_value = (1 << bits) - 1
             if not (0 <= value <= max_value):
@@ -171,6 +286,11 @@ class EventgroupEntry:
                 raise ValueError(f"{name} must be a {bits}-bit bitarray")
 
     def __repr__(self) -> str:
+        """Returns a string representation of the EventgroupEntry object.
+
+        Returns:
+            str: The string representation of the object.
+        """
         return "\n".join(
             (
                 f"{'type field':<32}: 0x{self.type_field:02X}",

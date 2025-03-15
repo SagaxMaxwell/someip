@@ -1,4 +1,4 @@
-__all__ = ["packet"]
+__all__ = ["Packet"]
 
 
 from protocol.someip.packet import Packet

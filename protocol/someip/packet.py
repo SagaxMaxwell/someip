@@ -1,9 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Mar  2 14:00:00 2021
-"""
-
 __all__ = ["Packet"]
 
 
@@ -11,7 +5,9 @@ import struct
 
 
 class Packet:
-    """Completely immutable design for SOME/IP packet.
+    """
+    Completely immutable design for SOME/IP packet.
+
     Attributes:
         service_id (int): The service ID.
         method_id (int): The method ID.
@@ -19,9 +15,10 @@ class Packet:
         session_id (int): The session ID.
         protocol_version (int): The protocol version.
         interface_version (int): The interface version.
-        message_type (MessageType): The message type.
-        return_code (ReturnCode): The return code.
+        message_type (int): The message type.
+        return_code (int): The return code.
         payload (bytes): The payload.
+
     Methods:
         encode(): Encode the packet to bytes.
         decode(series: bytes) -> Packet: Decode the packet from bytes.
@@ -51,6 +48,22 @@ class Packet:
         return_code: int,
         payload: bytes,
     ) -> None:
+        """Initializes the Packet with the provided attributes.
+
+        Args:
+            service_id (int): The service ID.
+            method_id (int): The method ID.
+            client_id (int): The client ID.
+            session_id (int): The session ID.
+            protocol_version (int): The protocol version.
+            interface_version (int): The interface version.
+            message_type (int): The message type.
+            return_code (int): The return code.
+            payload (bytes): The payload.
+
+        Raises:
+            ValueError: If any of the values exceed their valid range.
+        """
         self.__validate_bit("Service ID", service_id, 16)
         self.__validate_bit("Method ID", method_id, 16)
         self.__validate_bit("Client ID", client_id, 16)
@@ -59,6 +72,7 @@ class Packet:
         self.__validate_bit("Interface Version", interface_version, 8)
         self.__validate_bit("Message Type", message_type, 8)
         self.__validate_bit("Return Code", return_code, 8)
+
         self.__service_id = service_id
         self.__method_id = method_id
         self.__client_id = client_id
@@ -71,48 +85,57 @@ class Packet:
 
     @property
     def service_id(self) -> int:
+        """Returns the service ID."""
         return self.__service_id
 
     @property
     def method_id(self) -> int:
+        """Returns the method ID."""
         return self.__method_id
 
     @property
     def client_id(self) -> int:
+        """Returns the client ID."""
         return self.__client_id
 
     @property
     def session_id(self) -> int:
+        """Returns the session ID."""
         return self.__session_id
 
     @property
     def protocol_version(self) -> int:
+        """Returns the protocol version."""
         return self.__protocol_version
 
     @property
     def interface_version(self) -> int:
+        """Returns the interface version."""
         return self.__interface_version
 
     @property
     def message_type(self) -> int:
+        """Returns the message type."""
         return self.__message_type
 
     @property
     def return_code(self) -> int:
+        """Returns the return code."""
         return self.__return_code
 
     @property
     def payload(self) -> bytes:
+        """Returns the payload."""
         return self.__payload
 
     @property
     def length(self) -> int:
+        """Returns the total length of the packet (header + payload)."""
         return 8 + len(self.__payload)
 
     def encode(self) -> bytes:
-        """Encode the packet to bytes.
-        Args:
-            None.
+        """Encodes the packet into a byte sequence.
+
         Returns:
             bytes: The encoded packet.
         """
@@ -132,8 +155,20 @@ class Packet:
 
     @classmethod
     def decode(cls, series: bytes) -> "Packet":
+        """Decodes the packet from a byte sequence.
+
+        Args:
+            series (bytes): The byte sequence representing the packet.
+
+        Returns:
+            Packet: The decoded Packet object.
+
+        Raises:
+            ValueError: If the packet header is invalid.
+        """
         if len(series) < 16:
             raise ValueError("Invalid SOME/IP header length")
+
         (
             service_id,
             method_id,
@@ -145,6 +180,7 @@ class Packet:
             message_type,
             return_code,
         ) = struct.unpack(">HHIHHBBBB", series[:16])
+
         return cls(
             service_id=service_id,
             method_id=method_id,
@@ -159,21 +195,32 @@ class Packet:
 
     @staticmethod
     def __validate_bit(name: str, value: int, bits: int) -> None:
+        """Validates if the given value fits within the specified bit length.
+
+        Args:
+            name (str): The name of the value.
+            value (int): The value to validate.
+            bits (int): The bit length.
+
+        Raises:
+            ValueError: If the value is out of range for the specified bit length.
+        """
         max_value = (1 << bits) - 1
         if not (0 <= value <= max_value):
             raise ValueError(f"{name} must be a {bits}-bit unsigned integer")
 
     def __repr__(self) -> str:
+        """Returns a string representation of the Packet object."""
         return "\n".join(
             (
-                f"{'service id':<32}: 0x{self.service_id:04X}",
-                f"{'method id':<32}: 0x{self.method_id:04X}",
-                f"{'client id':<32}: 0x{self.client_id:04X}",
-                f"{'session id':<32}: 0x{self.session_id:04X}",
-                f"{'protocol version':<32}: 0x{self.protocol_version:02X}",
-                f"{'interface version':<32}: 0x{self.interface_version:02X}",
-                f"{'message type':<32}: 0x{self.message_type:02X}",
-                f"{'return code':<32}: 0x{self.return_code:02X}",
-                f"{'payload':<32}: {self.payload}",
+                f"{'service id':<24}: 0x{self.service_id:04X}",
+                f"{'method id':<24}: 0x{self.method_id:04X}",
+                f"{'client id':<24}: 0x{self.client_id:04X}",
+                f"{'session id':<24}: 0x{self.session_id:04X}",
+                f"{'protocol version':<24}: 0x{self.protocol_version:02X}",
+                f"{'interface version':<24}: 0x{self.interface_version:02X}",
+                f"{'message type':<24}: 0x{self.message_type:02X}",
+                f"{'return code':<24}: 0x{self.return_code:02X}",
+                f"{'payload':<24}: {self.payload}",
             )
         )
