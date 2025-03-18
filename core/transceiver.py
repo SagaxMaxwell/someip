@@ -34,6 +34,7 @@ class Transceiver:
             socket.error: If a socket operation fails.
         """
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER, 1)
             s.bind(local)
             s.connect(remote)
             s.sendall(packet)

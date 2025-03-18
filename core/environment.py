@@ -5,7 +5,7 @@ from pathlib import Path
 from logging import Formatter
 
 
-from util import singleton
+from utils import singleton
 
 
 @singleton
@@ -24,6 +24,7 @@ class Environment:
         log_path: Path,
         log_level: int,
         log_format: Formatter,
+        vehicle_type: str,
     ) -> None:
         """
         Initializes the environment settings.
@@ -34,12 +35,14 @@ class Environment:
             log_path (Path): The directory where logs are stored.
             log_level (int): The logging level.
             log_format (Formatter): The logging format.
+            vehicle_type (str): The vehicle type.
         """
         self.__config_path = config_path
         self.__log_name = log_name
         self.__log_path = log_path
         self.__log_level = log_level
         self.__log_format = log_format
+        self.__vehicle_type = vehicle_type
 
     @property
     def config_path(self) -> Path:
@@ -65,3 +68,8 @@ class Environment:
     def log_format(self) -> Formatter:
         """Gets the logging format."""
         return self.__log_format
+
+    @property
+    def vehicle_type(self) -> str:
+        """Gets the vehicle type."""
+        return self.__vehicle_type

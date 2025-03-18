@@ -105,6 +105,7 @@ class Constructor:
             log_path=Path(os.getenv("LOG_PATH")),
             log_level=int(os.getenv("LOG_LEVEL")),
             log_format=Formatter(os.getenv("LOG_FORMAT")),
+            vehicle_type=os.getenv("VEHICLE_TYPE"),
         )
 
     def build_part(self) -> None:
@@ -115,9 +116,9 @@ class Constructor:
         load_mdc = toml.load(Path(self.environment.config_path / "mdc.toml"))
         load_tbox = toml.load(Path(self.environment.config_path / "tbox.toml"))
         load_vdc = toml.load(Path(self.environment.config_path / "vdc.toml"))
-        mdc = load_mdc.get("address")
-        tbox = load_tbox.get("address")
-        vdc = load_vdc.get("address")
+        mdc = tuple(load_mdc.get("address").values())
+        tbox = tuple(load_tbox.get("address").values())
+        vdc = tuple(load_vdc.get("address").values())
         self.__part = Part(mdc=mdc, tbox=tbox, vdc=vdc)
 
     def build_allocator(self) -> None:
@@ -128,18 +129,15 @@ class Constructor:
         """Builds and initializes the transceiver."""
         self.__transceiver = Transceiver()
 
-    def build_tester(self, vehicle_type: str) -> None:
+    def build_tester(self) -> None:
         """Builds and initializes the tester based on the specified vehicle type.
-
-        Args:
-            vehicle_type (str): The type of vehicle (e.g., 'hima' or 'voyah').
 
         Raises:
             ValueError: If the vehicle type is not registered.
         """
-        tester_class = self.register.get(vehicle_type.strip().lower())
+        tester_class = self.register.get(self.environment.vehicle_type.strip().lower())
         if not tester_class:
-            raise ValueError(f"Unknown vehicle type: {vehicle_type}")
+            raise ValueError(f"Unknown vehicle type: {self.environment.vehicle_type}")
 
         self.__tester = tester_class(
             environment=self.environment,
