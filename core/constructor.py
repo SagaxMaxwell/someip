@@ -3,9 +3,7 @@ __all__ = ["Constructor"]
 
 import os
 from pathlib import Path
-from logging import Formatter
-
-
+from logging import FileHandler, Formatter, Logger, StreamHandler
 import toml
 
 
@@ -19,19 +17,19 @@ from tester.tester_voyah import TesterVoyah
 
 
 class Constructor:
-    """A class responsible for constructing and initializing system components.
+    """Responsible for constructing and initializing system components.
 
-    The `Constructor` class manages the creation of various components such as
-    `Environment`, `Part`, `Allocator`, `Transceiver`, and `Tester`. It also
-    maintains a registry for different tester types.
+    The `Constructor` class manages the creation of `Environment`, `Part`, `Allocator`,
+    `Transceiver`, and `Tester` instances. It also maintains a registry for different tester types.
 
     Attributes:
-        register (dict): A dictionary mapping vehicle types to their corresponding tester classes.
+        register (dict): A mapping of vehicle types to corresponding tester classes.
         environment (Environment): The environment configuration instance.
         part (Part): The part configuration instance.
         allocator (Allocator): The allocator instance for managing client-session allocation.
         transceiver (Transceiver): The transceiver instance for network communication.
-        tester (TesterBase): The selected tester instance based on vehicle type.
+        logger (Logger): The logger instance for handling log messages.
+        tester (TesterBase): The selected tester instance based on the vehicle type.
     """
 
     def __init__(self):
@@ -41,6 +39,7 @@ class Constructor:
         self.__part = None
         self.__allocator = None
         self.__transceiver = None
+        self.__logger = None
         self.__tester = None
 
     @property
@@ -57,7 +56,7 @@ class Constructor:
         """Gets the environment configuration instance.
 
         Returns:
-            Environment: The environment configuration.
+            Environment: The environment configuration instance.
         """
         return self.__environment
 
@@ -66,7 +65,7 @@ class Constructor:
         """Gets the part configuration instance.
 
         Returns:
-            Part: The part configuration.
+            Part: The part configuration instance.
         """
         return self.__part
 
@@ -75,7 +74,7 @@ class Constructor:
         """Gets the allocator instance.
 
         Returns:
-            Allocator: The session allocator.
+            Allocator: The allocator instance for managing client-session allocation.
         """
         return self.__allocator
 
@@ -84,16 +83,25 @@ class Constructor:
         """Gets the transceiver instance.
 
         Returns:
-            Transceiver: The transceiver used for network communication.
+            Transceiver: The transceiver instance for network communication.
         """
         return self.__transceiver
+
+    @property
+    def logger(self) -> Logger:
+        """Gets the logger instance.
+
+        Returns:
+            Logger: The logger instance for handling log messages.
+        """
+        return self.__logger
 
     @property
     def tester(self) -> TesterBase:
         """Gets the selected tester instance.
 
         Returns:
-            TesterBase: The tester instance based on vehicle type.
+            TesterBase: The selected tester instance based on the vehicle type.
         """
         return self.__tester
 
@@ -109,9 +117,9 @@ class Constructor:
         )
 
     def build_part(self) -> None:
-        """Builds and initializes the Part configuration.
+        """Builds and initializes the part configuration.
 
-        This loads configuration data from TOML files for MDC, TBOX, and VDC.
+        Loads configuration data from TOML files for MDC, TBOX, and VDC.
         """
         load_mdc = toml.load(Path(self.environment.config_path / "mdc.toml"))
         load_tbox = toml.load(Path(self.environment.config_path / "tbox.toml"))
@@ -129,6 +137,26 @@ class Constructor:
         """Builds and initializes the transceiver."""
         self.__transceiver = Transceiver()
 
+    def build_logger(self) -> None:
+        """Builds and initializes the logger.
+
+        Configures both a file handler and a stream handler for logging.
+        """
+        file_handler = FileHandler(
+            self.environment.log_path, mode="a", encoding="utf-8"
+        )
+        file_handler.setLevel(self.environment.log_level)
+        file_handler.setFormatter(self.environment.log_format)
+
+        stream_handler = StreamHandler()
+        stream_handler.setLevel(self.environment.log_level)
+        stream_handler.setFormatter(self.environment.log_format)
+
+        self.__logger = Logger(self.environment.log_name, self.environment.log_level)
+        self.__logger.propagate = False
+        self.__logger.addHandler(file_handler)
+        self.__logger.addHandler(stream_handler)
+
     def build_tester(self) -> None:
         """Builds and initializes the tester based on the specified vehicle type.
 
@@ -144,4 +172,5 @@ class Constructor:
             part=self.part,
             allocator=self.allocator,
             transceiver=self.transceiver,
+            logger=self.logger,
         )

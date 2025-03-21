@@ -4,7 +4,7 @@ __all__ = ["Allocator"]
 import threading
 import itertools
 from collections import defaultdict
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Set
 
 
 class Allocator:
@@ -26,13 +26,11 @@ class Allocator:
         - Stores a mapping from client IDs to session ID counters.
         """
         self.__lock = threading.RLock()
-        self.__client_pool = set(range(1, 0xFFFF))  # Available client IDs
-        self.__address_client_map: Dict[Tuple[str, int], int] = (
-            dict()
-        )  # (IP, port) -> client ID
+        self.__client_pool: Set[int] = set(range(1, 0xFFFF))
+        self.__address_client_map: Dict[Tuple[str, int], int] = dict()
         self.__client_session_map: Dict[int, itertools.count] = defaultdict(
-            itertools.count
-        )  # client ID -> session ID counter
+            lambda: itertools.count(start=1)
+        )
 
     @property
     def lock(self) -> threading.RLock:
@@ -82,11 +80,10 @@ class Allocator:
         with self.lock:
             session_iter = self.client_session_map[client_id]
             session_id = next(session_iter)
-
             if session_id >= 0xFFFF:
-                session_iter = self.client_session_map[client_id] = itertools.count()
-
-            return next(session_iter)
+                self.client_session_map[client_id] = itertools.count(start=1)
+                return next(self.client_session_map[client_id])
+            return session_id
 
     def release_client_id(self, local: Tuple[str, int]):
         """
@@ -108,4 +105,41 @@ class Allocator:
         with self.lock:
             self.client_session_map.clear()
             self.address_client_map.clear()
-            self.client_pool = set(range(1, 0xFFFF))
+            self.client_pool.update(set(range(1, 0xFFFF)))
+
+
+# 创建 Allocator 实例
+allocator = Allocator()
+
+# 分配 Client ID
+client_address = ("192.168.1.100", 5000)
+client_id = allocator.get_client_id(client_address)
+print(f"Assigned Client ID for {client_address}: {client_id}")
+
+# 分配多个 Session ID
+session_id1 = allocator.get_session_id(client_id)
+session_id2 = allocator.get_session_id(client_id)
+print(f"Session IDs for Client {client_id}: {session_id1}, {session_id2}")
+
+# 释放 Client ID
+allocator.release_client_id(client_address)
+print(f"Released Client ID for {client_address}")
+
+# 再次请求相同的 (IP, port)，会获取一个新的 Client ID
+new_client_id = allocator.get_client_id(client_address)
+print(f"New Client ID for {client_address}: {new_client_id}")
+
+# 释放所有资源（清空所有分配的 Client ID 和 Session ID）
+allocator.release()
+print("Allocator resources reset.")
+
+print("121232313231232")
+# 分配 Client ID
+client_address = ("192.168.1.100", 5000)
+client_id = allocator.get_client_id(client_address)
+print(f"Assigned Client ID for {client_address}: {client_id}")
+
+# 分配多个 Session ID
+session_id1 = allocator.get_session_id(client_id)
+session_id2 = allocator.get_session_id(client_id)
+print(f"Session IDs for Client {client_id}: {session_id1}, {session_id2}")

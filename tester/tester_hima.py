@@ -1,6 +1,9 @@
 __all__ = ["TesterHima"]
 
 
+from logging import Logger
+
+
 from core.environment import Environment
 from core.part import Part
 from core.allocator import Allocator
@@ -15,5 +18,6 @@ class TesterHima(TesterBase):
         part: Part,
         allocator: Allocator,
         transceiver: Transceiver,
+        logger: Logger,
     ):
-        super().__init__(environment, part, allocator, transceiver)
+        super().__init__(environment, part, allocator, transceiver, logger)

@@ -3,6 +3,7 @@ __all__ = ["TesterBase"]
 
 from abc import ABC, abstractmethod
 from pathlib import Path
+from logging import Logger
 from typing import Any, Dict, Tuple
 
 
@@ -26,6 +27,7 @@ class TesterBase(ABC):
         part: Part,
         allocator: Allocator,
         transceiver: Transceiver,
+        logger: Logger,
     ):
         """Initializes a TesterBase instance with environment, part,
         allocator, and transceiver.
@@ -40,6 +42,7 @@ class TesterBase(ABC):
         self.__part = part
         self.__allocator = allocator
         self.__transceiver = transceiver
+        self.__logger = logger
 
     @property
     def environment(self) -> Environment:
@@ -60,6 +63,10 @@ class TesterBase(ABC):
     def transceiver(self) -> Transceiver:
         """Returns the transceiver used for communication during tests."""
         return self.__transceiver
+
+    @property
+    def logger(self) -> Logger:
+        return self.__logger
 
     def load_fields(self, path: Path) -> Dict[str, Any]:
         """Loads test configuration fields from a TOML file.
