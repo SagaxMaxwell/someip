@@ -121,9 +121,9 @@ class Constructor:
 
         Loads configuration data from TOML files for MDC, TBOX, and VDC.
         """
-        load_mdc = toml.load(Path(self.environment.config_path / "mdc.toml"))
-        load_tbox = toml.load(Path(self.environment.config_path / "tbox.toml"))
-        load_vdc = toml.load(Path(self.environment.config_path / "vdc.toml"))
+        load_mdc = toml.load(self.environment.config_path / "mdc.toml")
+        load_tbox = toml.load(self.environment.config_path / "tbox.toml")
+        load_vdc = toml.load(self.environment.config_path / "vdc.toml")
         mdc = tuple(load_mdc.get("address").values())
         tbox = tuple(load_tbox.get("address").values())
         vdc = tuple(load_vdc.get("address").values())
