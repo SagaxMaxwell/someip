@@ -21,3 +21,6 @@ class TesterHima(TesterBase):
         logger: Logger,
     ):
         super().__init__(environment, part, allocator, transceiver, logger)
+
+    def open_window(self):
+        return super().open_window()

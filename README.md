@@ -9,13 +9,13 @@
 
 ```ascii
 # CONFIG
-CONFIG_PATH = "/configuration"
+CONFIG_PATH = "./configuration/hima"
 
 
 # LOG
 LOG_NAME = "someip test"
-LOG_PATH = "/test.log"
-LOG_LEVEL = "DEBUG"
+LOG_PATH = "./test.log"
+LOG_LEVEL = "0"
 LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 ```
 
