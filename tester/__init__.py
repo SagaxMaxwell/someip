@@ -1,6 +1,4 @@
-__all__ = ["TesterBase", "TesterHima", "TesterVoyah"]
+__all__ = ["TesterBase"]
 
 
-from tester.tester_base import TesterBase
-from tester.tester_hima import TesterHima
-from tester.tester_voyah import TesterVoyah
+from tester.base import Base as TesterBase

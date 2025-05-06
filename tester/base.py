@@ -1,22 +1,20 @@
-__all__ = ["TesterBase"]
+__all__ = ["Base"]
 
 
 from abc import ABC, abstractmethod
-from pathlib import Path
 from logging import Logger
+from pathlib import Path
 from typing import Any, Dict, Tuple
-
 
 import toml
 
-
+from core.allocator import Allocator
 from core.environment import Environment
 from core.part import Part
-from core.allocator import Allocator
 from core.transceiver import Transceiver
 
 
-class TesterBase(ABC):
+class Base(ABC):
     """Base class for testing operations. This class defines common
     functionality for setting up and managing test environments, parts,
     and resources needed for tests."""
@@ -29,7 +27,7 @@ class TesterBase(ABC):
         transceiver: Transceiver,
         logger: Logger,
     ):
-        """Initializes a TesterBase instance with environment, part,
+        """Initializes a Base instance with environment, part,
         allocator, and transceiver.
 
         Args:
@@ -102,8 +100,3 @@ class TesterBase(ABC):
         combined = {"client_id": client_id, "session_id": session_id}
         combined.update(*fields)
         return combined
-
-    @abstractmethod
-    def open_window(self) -> None:
-        """Abstract method to open a testing window. Subclasses must implement this."""
-        ...

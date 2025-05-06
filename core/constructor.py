@@ -2,54 +2,26 @@ __all__ = ["Constructor"]
 
 
 import os
-from pathlib import Path
 from logging import FileHandler, Formatter, Logger, StreamHandler
+from pathlib import Path
+
 import toml
 
-
+from core.allocator import Allocator
 from core.environment import Environment
 from core.part import Part
-from core.allocator import Allocator
 from core.transceiver import Transceiver
-from tester.tester_base import TesterBase
-from tester.tester_hima import TesterHima
-from tester.tester_voyah import TesterVoyah
+from tester.base import Base as TesterBase
 
 
 class Constructor:
-    """Responsible for constructing and initializing system components.
-
-    The `Constructor` class manages the creation of `Environment`, `Part`, `Allocator`,
-    `Transceiver`, and `Tester` instances. It also maintains a registry for different tester types.
-
-    Attributes:
-        register (dict): A mapping of vehicle types to corresponding tester classes.
-        environment (Environment): The environment configuration instance.
-        part (Part): The part configuration instance.
-        allocator (Allocator): The allocator instance for managing client-session allocation.
-        transceiver (Transceiver): The transceiver instance for network communication.
-        logger (Logger): The logger instance for handling log messages.
-        tester (TesterBase): The selected tester instance based on the vehicle type.
-    """
-
     def __init__(self):
-        """Initializes the Constructor class and sets up the tester registry."""
-        self.__register = {"hima": TesterHima, "voyah": TesterVoyah}
-        self.__environment = None
-        self.__part = None
-        self.__allocator = None
-        self.__transceiver = None
-        self.__logger = None
-        self.__tester = None
-
-    @property
-    def register(self) -> dict:
-        """Gets the tester registry.
-
-        Returns:
-            dict: A mapping of vehicle types to tester classes.
-        """
-        return self.__register
+        self.build_environment()
+        self.build_part()
+        self.build_allocator()
+        self.build_transceiver()
+        self.build_logger()
+        self.build_tester()
 
     @property
     def environment(self) -> Environment:
@@ -163,11 +135,7 @@ class Constructor:
         Raises:
             ValueError: If the vehicle type is not registered.
         """
-        tester_class = self.register.get(self.environment.vehicle_type.strip().lower())
-        if not tester_class:
-            raise ValueError(f"Unknown vehicle type: {self.environment.vehicle_type}")
-
-        self.__tester = tester_class(
+        self.__tester = TesterBase(
             environment=self.environment,
             part=self.part,
             allocator=self.allocator,
