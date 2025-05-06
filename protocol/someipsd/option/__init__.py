@@ -1,6 +1,7 @@
-__all__ = ["OptionType", "IPv4Option", "IPv6Option"]
+__all__ = ["OptionLength", "OptionType", "OptionIPv4", "OptionIPv6"]
 
 
-from protocol.someipsd.option.option_type import OptionType
-from protocol.someipsd.option.ipv4_option import IPv4Option
-from protocol.someipsd.option.ipv6_option import IPv6Option
+from protocol.someipsd.option.ipv4 import IPv4 as OptionIPv4
+from protocol.someipsd.option.ipv6 import IPv6 as OptionIPv6
+from protocol.someipsd.option.length import Length as OptionLength
+from protocol.someipsd.option.type import Type as OptionType

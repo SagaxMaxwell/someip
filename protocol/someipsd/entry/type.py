@@ -1,10 +1,10 @@
-__all__ = ["EntryType"]
+__all__ = ["Type"]
 
 
 from enum import IntEnum
 
 
-class EntryType(IntEnum):
+class Type(IntEnum):
     """Enumeration representing different entry types in the SOME/IP protocol.
 
     This enum defines the various types of entries used in the protocol,

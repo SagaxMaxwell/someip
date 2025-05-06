@@ -1,10 +1,10 @@
-__all__ = ["OptionType"]
+__all__ = ["Type"]
 
 
 from enum import IntEnum
 
 
-class OptionType(IntEnum):
+class Type(IntEnum):
     """Enumeration representing different option types in the SOME/IP protocol.
 
     This enum defines various option types used in the protocol to specify

@@ -1,12 +1,13 @@
-__all__ = ["IPv6Option"]
+__all__ = ["IPv6"]
 
 
 import ipaddress
+
 from bitarray import bitarray
 from bitarray.util import ba2int
 
 
-class IPv6Option:
+class IPv6:
     """Represents an IPv6 option field with necessary attributes and methods
     for encoding and decoding."""
 
@@ -26,7 +27,7 @@ class IPv6Option:
         transport_protocol: int,
         transport_protocol_port_number: int,
     ) -> None:
-        """Initializes an IPv6Option instance.
+        """Initializes an IPv6 instance.
 
         Args:
             type (int): Type of the IPv6 option.
@@ -112,14 +113,14 @@ class IPv6Option:
         return packet.tobytes()
 
     @classmethod
-    def decode(cls, series: bytes) -> "IPv6Option":
-        """Decodes a byte sequence into an IPv6Option object.
+    def decode(cls, series: bytes) -> "IPv6":
+        """Decodes a byte sequence into an IPv6 object.
 
         Args:
             series (bytes): The byte sequence to decode.
 
         Returns:
-            IPv6Option: The decoded IPv6Option object.
+            IPv6: The decoded IPv6 object.
 
         Raises:
             ValueError: If the length of the byte sequence is invalid.
@@ -175,7 +176,7 @@ class IPv6Option:
             raise ValueError("Invalid IPv6 address")
 
     def __repr__(self) -> str:
-        """Returns a string representation of the IPv6Option object."""
+        """Returns a string representation of the IPv6 object."""
         return "\n".join(
             (
                 f"{'length':<32}: 0x{self.length:04X}",

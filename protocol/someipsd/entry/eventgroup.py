@@ -1,17 +1,17 @@
-__all__ = ["ServiceEntry"]
+__all__ = ["Eventgroup"]
 
 
 from bitarray import bitarray
 from bitarray.util import ba2int
 
 
-class ServiceEntry:
-    """Represents a service entry in a protocol.
+class Eventgroup:
+    """Represents an event group entry in a protocol.
 
-    This class encapsulates the structure of a service entry, including various
-    fields such as type, indices, options, service identifiers, versions, and other
-    attributes related to the service entry. It supports encoding and decoding the
-    entry from and to byte representation.
+    This class encapsulates the structure of an event group entry, including
+    various fields such as type, indices, options, and other attributes related
+    to the event group. It supports encoding and decoding the entry from and to
+    byte representation.
 
     Attributes:
         type_field (int): Type of the entry (8 bits).
@@ -23,7 +23,8 @@ class ServiceEntry:
         instance_id (int): Instance identifier (16 bits).
         major_version (int): Major version number (8 bits).
         ttl (int): Time-to-live (TTL) value (24 bits).
-        minor_version (int): Minor version number (32 bits).
+        counter (bitarray): Counter value (4 bits).
+        eventgroup_id (int): Event group identifier (16 bits).
     """
 
     __slots__ = (
@@ -36,7 +37,8 @@ class ServiceEntry:
         "__instance_id",
         "__major_version",
         "__ttl",
-        "__minor_version",
+        "__counter",
+        "__eventgroup_id",
     )
 
     def __init__(
@@ -50,9 +52,10 @@ class ServiceEntry:
         instance_id: int,
         major_version: int,
         ttl: int,
-        minor_version: int,
+        counter: bitarray,
+        eventgroup_id: int,
     ) -> None:
-        """Initializes the ServiceEntry object with the provided field values.
+        """Initializes the Eventgroup object with the provided field values.
 
         Args:
             type_field (int): Type of the entry (8 bits).
@@ -64,7 +67,8 @@ class ServiceEntry:
             instance_id (int): Instance identifier (16 bits).
             major_version (int): Major version number (8 bits).
             ttl (int): Time-to-live (TTL) value (24 bits).
-            minor_version (int): Minor version number (32 bits).
+            counter (bitarray): Counter value (4 bits).
+            eventgroup_id (int): Event group identifier (16 bits).
         """
         self.__validate_bit("Entry Type", type_field, 8)
         self.__validate_bit("Index First Option Run", index_first_option_run, 8)
@@ -75,7 +79,8 @@ class ServiceEntry:
         self.__validate_bit("Instance ID", instance_id, 16)
         self.__validate_bit("Major Version", major_version, 8)
         self.__validate_bit("TTL", ttl, 24)
-        self.__validate_bit("Minor Version", minor_version, 32)
+        self.__validate_bit("Counter", counter, 4)
+        self.__validate_bit("Eventgroup ID", eventgroup_id, 16)
 
         self.__type_field = type_field
         self.__index_first_option_run = index_first_option_run
@@ -86,11 +91,12 @@ class ServiceEntry:
         self.__instance_id = instance_id
         self.__major_version = major_version
         self.__ttl = ttl
-        self.__minor_version = minor_version
+        self.__counter = counter
+        self.__eventgroup_id = eventgroup_id
 
     @property
     def type_field(self) -> int:
-        """Returns the type field of the service entry.
+        """Returns the type field of the event group entry.
 
         Returns:
             int: The type field (8 bits).
@@ -170,19 +176,28 @@ class ServiceEntry:
         return self.__ttl
 
     @property
-    def minor_version(self) -> int:
-        """Returns the minor version.
+    def counter(self) -> bitarray:
+        """Returns the counter value.
 
         Returns:
-            int: The minor version (32 bits).
+            bitarray: The counter value (4 bits).
         """
-        return self.__minor_version
+        return self.__counter
+
+    @property
+    def eventgroup_id(self) -> int:
+        """Returns the event group identifier.
+
+        Returns:
+            int: The event group ID (16 bits).
+        """
+        return self.__eventgroup_id
 
     def encode(self) -> bytes:
-        """Encodes the service entry into bytes.
+        """Encodes the event group entry into bytes.
 
         Returns:
-            bytes: The byte representation of the service entry.
+            bytes: The byte representation of the event group entry.
         """
         packet = bitarray()
         for field, bits in zip(
@@ -196,9 +211,11 @@ class ServiceEntry:
                 self.instance_id,
                 self.major_version,
                 self.ttl,
-                self.minor_version,
+                bitarray("0" * 12),
+                self.counter,
+                self.eventgroup_id,
             ),
-            (8, 8, 8, 4, 4, 16, 16, 8, 24, 32),
+            (8, 8, 8, 4, 4, 16, 16, 8, 24, 12, 4, 16),
         ):
             if isinstance(field, int):
                 packet.frombytes(field.to_bytes(bits // 8, "big"))
@@ -207,14 +224,14 @@ class ServiceEntry:
         return packet.tobytes()
 
     @classmethod
-    def decode(cls, series: bytes) -> "ServiceEntry":
-        """Decodes a byte series into a ServiceEntry object.
+    def decode(cls, series: bytes) -> "Eventgroup":
+        """Decodes a byte series into an Eventgroup object.
 
         Args:
-            series (bytes): The byte series representing the service entry.
+            series (bytes): The byte series representing the event group entry.
 
         Returns:
-            ServiceEntry: The decoded service entry object.
+            Eventgroup: The decoded event group entry object.
 
         Raises:
             ValueError: If the byte series has an invalid length.
@@ -232,7 +249,8 @@ class ServiceEntry:
         instance_id = ba2int(packet[48:64])
         major_version = ba2int(packet[64:72])
         ttl = ba2int(packet[72:96])
-        minor_version = ba2int(packet[96:128])
+        counter = packet[108:112]
+        eventgroup_id = ba2int(packet[112:128])
         return cls(
             type_field=type_field,
             index_first_option_run=index_first_option_run,
@@ -243,7 +261,8 @@ class ServiceEntry:
             instance_id=instance_id,
             major_version=major_version,
             ttl=ttl,
-            minor_version=minor_version,
+            counter=counter,
+            eventgroup_id=eventgroup_id,
         )
 
     @staticmethod
@@ -267,7 +286,7 @@ class ServiceEntry:
                 raise ValueError(f"{name} must be a {bits}-bit bitarray")
 
     def __repr__(self) -> str:
-        """Returns a string representation of the ServiceEntry object.
+        """Returns a string representation of the Eventgroup object.
 
         Returns:
             str: The string representation of the object.
@@ -283,6 +302,7 @@ class ServiceEntry:
                 f"{'instance id':<32}: 0x{self.instance_id:04X}",
                 f"{'major version':<32}: 0x{self.major_version:02X}",
                 f"{'ttl':<32}: 0x{self.ttl:06X}",
-                f"{'minor version':<32}: 0x{self.minor_version:08X}",
+                f"{'counter':<32}: {self.counter}",
+                f"{'eventgroup id':<32}: 0x{self.eventgroup_id:04X}",
             )
         )

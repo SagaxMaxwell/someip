@@ -1,12 +1,13 @@
-__all__ = ["IPv4Option"]
+__all__ = ["IPv4"]
 
 
 import ipaddress
+
 from bitarray import bitarray
 from bitarray.util import ba2int
 
 
-class IPv4Option:
+class IPv4:
     """Represents an IPv4 option field with necessary attributes and methods
     for encoding and decoding."""
 
@@ -26,7 +27,7 @@ class IPv4Option:
         transport_protocol: int,
         transport_protocol_port_number: int,
     ) -> None:
-        """Initializes an IPv4Option instance.
+        """Initializes an IPv4 instance.
 
         Args:
             type (int): Type of the IPv4 option.
@@ -112,14 +113,14 @@ class IPv4Option:
         return packet.tobytes()
 
     @classmethod
-    def decode(cls, series: bytes) -> "IPv4Option":
-        """Decodes a byte sequence into an IPv4Option object.
+    def decode(cls, series: bytes) -> "IPv4":
+        """Decodes a byte sequence into an IPv4 object.
 
         Args:
             series (bytes): The byte sequence to decode.
 
         Returns:
-            IPv4Option: The decoded IPv4Option object.
+            IPv4: The decoded IPv4 object.
 
         Raises:
             ValueError: If the length of the byte sequence is invalid.
@@ -175,7 +176,7 @@ class IPv4Option:
             raise ValueError("Invalid ipv4 address")
 
     def __repr__(self) -> str:
-        """Returns a string representation of the IPv4Option object."""
+        """Returns a string representation of the IPv4 object."""
         return "\n".join(
             (
                 f"{'length':<32}: 0x{self.length:04X}",

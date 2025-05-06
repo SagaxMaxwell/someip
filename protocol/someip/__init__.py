@@ -1,4 +1,5 @@
-__all__ = ["Packet"]
+__all__ = ["SomeipPacket", "SomeipLength"]
 
 
-from protocol.someip.packet import Packet
+from protocol.someip.length import Length as SomeipLength
+from protocol.someip.packet import Packet as SomeipPacket
