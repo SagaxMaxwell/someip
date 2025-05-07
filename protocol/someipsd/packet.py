@@ -2,29 +2,13 @@ __all__ = ["Packet"]
 
 
 from bitarray import bitarray
-from bitarray.util import ba2int
+from bitarray.util import ba2int, int2ba
+
+from protocol.someipsd.length import Length
+from utils.bit_reader import BitReader
 
 
 class Packet:
-    """Represents an immutable design for a SOME/IP packet.
-
-    Attributes:
-        service_id (int): The service ID.
-        method_id (int): The method ID.
-        client_id (int): The client ID.
-        session_id (int): The session ID.
-        protocol_version (int): The protocol version.
-        interface_version (int): The interface version.
-        message_type (int): The message type.
-        return_code (int): The return code.
-        flags (int): Flags for the packet.
-        entries_array (bytes): Array containing entries.
-        options_array (bytes): Array containing options.
-
-    Methods:
-        encode(): Encodes the packet into bytes.
-        decode(series: bytes) -> Packet: Decodes a byte sequence into a Packet object.
-    """
 
     __slots__ = (
         "__service_id",
@@ -36,6 +20,7 @@ class Packet:
         "__message_type",
         "__return_code",
         "__flags",
+        "__reserved",
         "__entries_array",
         "__options_array",
     )
@@ -51,37 +36,10 @@ class Packet:
         message_type: int,
         return_code: int,
         flags: int,
+        reserved: int,
         entries_array: bytes,
         options_array: bytes,
     ):
-        """Initializes the Packet object with provided attributes.
-
-        Args:
-            service_id (int): The service ID.
-            method_id (int): The method ID.
-            client_id (int): The client ID.
-            session_id (int): The session ID.
-            protocol_version (int): The protocol version.
-            interface_version (int): The interface version.
-            message_type (int): The message type.
-            return_code (int): The return code.
-            flags (int): The flags.
-            entries_array (bytes): The entries array.
-            options_array (bytes): The options array.
-
-        Raises:
-            ValueError: If any of the values exceed the valid range for their bit length.
-        """
-        self.__validate_bit("Service ID", service_id, 16)
-        self.__validate_bit("Method ID", method_id, 16)
-        self.__validate_bit("Client ID", client_id, 16)
-        self.__validate_bit("Session ID", session_id, 16)
-        self.__validate_bit("Protocol Version", protocol_version, 8)
-        self.__validate_bit("Interface Version", interface_version, 8)
-        self.__validate_bit("Message Type", message_type, 8)
-        self.__validate_bit("Return Code", return_code, 8)
-        self.__validate_bit("Flags", flags, 8)
-
         self.__service_id = service_id
         self.__method_id = method_id
         self.__client_id = client_id
@@ -91,6 +49,7 @@ class Packet:
         self.__message_type = message_type
         self.__return_code = return_code
         self.__flags = flags
+        self.__reserved = reserved
         self.__entries_array = bytes(entries_array)
         self.__options_array = bytes(options_array)
 
@@ -140,14 +99,9 @@ class Packet:
         return self.__flags
 
     @property
-    def entries_array(self) -> bytes:
-        """Returns the entries array."""
-        return self.__entries_array
-
-    @property
-    def options_array(self) -> bytes:
-        """Returns the options array."""
-        return self.__options_array
+    def reserved(self) -> int:
+        """Returns the reserved field."""
+        return self.__reserved
 
     @property
     def length_of_entries_array(self) -> int:
@@ -155,14 +109,52 @@ class Packet:
         return len(self.entries_array)
 
     @property
+    def entries_array(self) -> bytes:
+        """Returns the entries array."""
+        return self.__entries_array
+
+    @property
     def length_of_options_array(self) -> int:
         """Returns the length of the options array."""
         return len(self.options_array)
 
     @property
+    def options_array(self) -> bytes:
+        """Returns the options array."""
+        return self.__options_array
+
+    @property
     def length(self) -> int:
         """Returns the total length of the packet including headers and arrays."""
-        return 20 + self.length_of_entries_array + self.length_of_options_array
+        return (
+            Packet.expected_minimum_length() // 8
+            + self.length_of_entries_array
+            + self.length_of_options_array
+        )
+
+    @staticmethod
+    def expected_minimum_length() -> int:
+        """Returns the expected length of the packet.
+
+        Returns:
+            int: The expected length of the packet in bytes.
+        """
+        length = sum(
+            (
+                Length.SERVICE_ID,
+                Length.METHOD_ID,
+                Length.LENGTH,
+                Length.CLIENT_ID,
+                Length.SESSION_ID,
+                Length.PROTOCOL_VERSION,
+                Length.INTERFACE_VERSION,
+                Length.MESSAGE_TYPE,
+                Length.RETURN_CODE,
+                Length.FLAGS,
+                Length.RESERVED,
+            )
+        )
+        return length
 
     def encode(self) -> bytes:
         """Encodes the packet into a byte sequence.
@@ -170,34 +162,29 @@ class Packet:
         Returns:
             bytes: The encoded byte sequence representing the packet.
         """
-        packet = bitarray()
-        for field, bits in zip(
-            (
-                self.service_id,
-                self.method_id,
-                self.length,
-                self.client_id,
-                self.session_id,
-                self.protocol_version,
-                self.interface_version,
-                self.message_type,
-                self.return_code,
-                self.flags,
-                bitarray("0" * 24),  # Placeholder for reserved bits
-                self.length_of_entries_array,
-                self.entries_array,
-                self.length_of_options_array,
-                self.options_array,
-            ),
-            (16, 16, 32, 16, 16, 8, 8, 8, 8, 8, 24, 32, 0, 32, 0),
-        ):
-            if isinstance(field, int):
-                packet.frombytes(field.to_bytes(bits // 8, "big"))
-            elif isinstance(field, bitarray) and len(field) == bits:
-                packet.extend(field)
-            elif isinstance(field, bytes):
-                packet.frombytes(field)
-        return packet.tobytes()
+
+        series = bitarray()
+        series += int2ba(self.service_id, length=Length.SERVICE_ID)
+        series += int2ba(self.method_id, length=Length.METHOD_ID)
+        series += int2ba(self.length, length=Length.LENGTH)
+        series += int2ba(self.client_id, length=Length.CLIENT_ID)
+        series += int2ba(self.session_id, length=Length.SESSION_ID)
+        series += int2ba(self.protocol_version, length=Length.PROTOCOL_VERSION)
+        series += int2ba(self.interface_version, length=Length.INTERFACE_VERSION)
+        series += int2ba(self.message_type, length=Length.MESSAGE_TYPE)
+        series += int2ba(self.return_code, length=Length.RETURN_CODE)
+        series += int2ba(self.flags, length=Length.FLAGS)
+        series += int2ba(self.reserved, length=Length.RESERVED)
+        series += int2ba(
+            self.length_of_entries_array, length=Length.LENGTH_OF_ENTRIES_ARRAY
+        )
+        series.frombytes(self.entries_array)
+        series += int2ba(
+            self.length_of_options_array, length=Length.LENGTH_OF_OPTIONS_ARRAY
+        )
+        series.frombytes(self.options_array)
+
+        return series.tobytes()
 
     @classmethod
     def decode(cls, series: bytes) -> "Packet":
@@ -212,41 +199,28 @@ class Packet:
         Raises:
             ValueError: If the byte sequence is of invalid length.
         """
-        if len(series) != 28:
-            raise ValueError("Invalid entry length")
         packet = bitarray()
         packet.frombytes(series)
 
-        # Decode the base fields
-        service_id = ba2int(packet[:16])
-        method_id = ba2int(packet[16:32])
-        client_id = ba2int(packet[64:80])
-        session_id = ba2int(packet[80:96])
-        protocol_version = ba2int(packet[96:104])
-        interface_version = ba2int(packet[104:112])
-        message_type = ba2int(packet[112:120])
-        return_code = ba2int(packet[120:128])
-        flags = ba2int(packet[128:136])
+        if len(packet) < cls.expected_minimum_length():
+            raise ValueError("Invalid SOME/IP SD minimum length")
 
-        # Decode the length of entries array
-        start = 160
-        end = 192
-        length_of_entries_array = ba2int(packet[start:end])
-
-        # Decode entries array
-        start = end
-        end += length_of_entries_array
-        entries_array = packet[start:end].tobytes()
-
-        # Decode the length of options array
-        start = end
-        end += 32
-        length_of_options_array = ba2int(packet[start:end])
-
-        # Decode options array
-        start = end
-        end += length_of_options_array
-        options_array = packet[start:end].tobytes()
+        reader = BitReader(packet)
+        service_id = ba2int(reader.read(Length.SERVICE_ID))
+        method_id = ba2int(reader.read(Length.METHOD_ID))
+        _ = ba2int(reader.read(Length.LENGTH))
+        client_id = ba2int(reader.read(Length.CLIENT_ID))
+        session_id = ba2int(reader.read(Length.SESSION_ID))
+        protocol_version = ba2int(reader.read(Length.PROTOCOL_VERSION))
+        interface_version = ba2int(reader.read(Length.INTERFACE_VERSION))
+        message_type = ba2int(reader.read(Length.MESSAGE_TYPE))
+        return_code = ba2int(reader.read(Length.RETURN_CODE))
+        flags = ba2int(reader.read(Length.FLAGS))
+        reserved = ba2int(reader.read(Length.RESERVED))
+        length_of_entries_array = ba2int(reader.read(Length.LENGTH_OF_ENTRIES_ARRAY))
+        entries_array = reader.read(length_of_entries_array * 8).tobytes()
+        length_of_options_array = ba2int(reader.read(Length.LENGTH_OF_OPTIONS_ARRAY))
+        options_array = reader.read(length_of_options_array * 8).tobytes()
 
         return cls(
             service_id=service_id,
@@ -258,40 +232,29 @@ class Packet:
             message_type=message_type,
             return_code=return_code,
             flags=flags,
+            reserved=reserved,
             entries_array=entries_array,
             options_array=options_array,
         )
-
-    @staticmethod
-    def __validate_bit(name: str, value: int, bits: int) -> None:
-        """Validates if the given value fits within the specified bit length.
-
-        Args:
-            name (str): The name of the field.
-            value (int): The value to validate.
-            bits (int): The bit length.
-
-        Raises:
-            ValueError: If the value exceeds the allowed range.
-        """
-        max_value = (1 << bits) - 1
-        if not (0 <= value <= max_value):
-            raise ValueError(f"{name} must be a {bits}-bit unsigned integer")
 
     def __repr__(self) -> str:
         """Returns a string representation of the Packet object."""
         return "\n".join(
             (
-                f"{'service id':<24}: 0x{self.service_id:04X}",
-                f"{'method id':<24}: 0x{self.method_id:04X}",
-                f"{'client id':<24}: 0x{self.client_id:04X}",
-                f"{'session id':<24}: 0x{self.session_id:04X}",
-                f"{'protocol version':<24}: 0x{self.protocol_version:02X}",
-                f"{'interface version':<24}: 0x{self.interface_version:02X}",
-                f"{'message type':<24}: 0x{self.message_type:02X}",
-                f"{'return code':<24}: 0x{self.return_code:02X}",
-                f"{'flags':<24}: 0x{self.flags:02X}",
+                f"{'service id':<24}: {self.service_id}",
+                f"{'method id':<24}: {self.method_id}",
+                f"{'length':<24}: {self.length}",
+                f"{'client id':<24}: {self.client_id}",
+                f"{'session id':<24}: {self.session_id}",
+                f"{'protocol version':<24}: {self.protocol_version}",
+                f"{'interface version':<24}: {self.interface_version}",
+                f"{'message type':<24}: {self.message_type}",
+                f"{'return code':<24}: {self.return_code}",
+                f"{'flags':<24}: {self.flags}",
+                f"{'reserved':<24}: {self.reserved}",
+                f"{'length of entries array':<24}: {self.length_of_entries_array}",
                 f"{'entries array':<24}: {self.entries_array}",
+                f"{'length of options array':<24}: {self.length_of_options_array}",
                 f"{'options array':<24}: {self.options_array}",
             )
         )

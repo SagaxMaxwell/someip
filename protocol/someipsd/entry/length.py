@@ -17,3 +17,6 @@ class Length(IntEnum):
     MAJOR_VERSION = 8
     TTL = 24
     MINOR_VERSION = 32
+    RESERVED = 12
+    COUNTER = 4
+    EVENTGROUP_ID = 16

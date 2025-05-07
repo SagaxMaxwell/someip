@@ -1,7 +1,11 @@
 __all__ = ["Packet"]
 
 
-import struct
+from bitarray import bitarray
+from bitarray.util import ba2int, int2ba
+
+from protocol.someip.length import Length
+from utils.bit_reader import BitReader
 
 
 class Packet:
@@ -60,18 +64,7 @@ class Packet:
             message_type (int): The message type.
             return_code (int): The return code.
             payload (bytes): The payload.
-
-        Raises:
-            ValueError: If any of the values exceed their valid range.
         """
-        self.__validate_bit("Service ID", service_id, 16)
-        self.__validate_bit("Method ID", method_id, 16)
-        self.__validate_bit("Client ID", client_id, 16)
-        self.__validate_bit("Session ID", session_id, 16)
-        self.__validate_bit("Protocol Version", protocol_version, 8)
-        self.__validate_bit("Interface Version", interface_version, 8)
-        self.__validate_bit("Message Type", message_type, 8)
-        self.__validate_bit("Return Code", return_code, 8)
 
         self.__service_id = service_id
         self.__method_id = method_id
@@ -131,7 +124,25 @@ class Packet:
     @property
     def length(self) -> int:
         """Returns the total length of the packet (header + payload)."""
-        return 8 + len(self.__payload)
+        return Packet.expected_header_length() // 8 + len(self.payload)
+
+    @staticmethod
+    def expected_header_length() -> int:
+        """Returns the length of the header."""
+        length = sum(
+            (
+                Length.SERVICE_ID,
+                Length.METHOD_ID,
+                Length.LENGTH,
+                Length.CLIENT_ID,
+                Length.SESSION_ID,
+                Length.PROTOCOL_VERSION,
+                Length.INTERFACE_VERSION,
+                Length.MESSAGE_TYPE,
+                Length.RETURN_CODE,
+            )
+        )
+        return length
 
     def encode(self) -> bytes:
         """Encodes the packet into a byte sequence.
@@ -139,23 +150,22 @@ class Packet:
         Returns:
             bytes: The encoded packet.
         """
-        header = struct.pack(
-            ">HHIHHBBBB",
-            self.service_id,
-            self.method_id,
-            self.length,
-            self.client_id,
-            self.session_id,
-            self.protocol_version,
-            self.interface_version,
-            self.message_type,
-            self.return_code,
-        )
-        return header + self.payload
+        series = bitarray()
+        series += int2ba(self.service_id, length=Length.SERVICE_ID)
+        series += int2ba(self.method_id, length=Length.METHOD_ID)
+        series += int2ba(self.length, length=Length.LENGTH)
+        series += int2ba(self.client_id, length=Length.CLIENT_ID)
+        series += int2ba(self.session_id, length=Length.SESSION_ID)
+        series += int2ba(self.protocol_version, length=Length.PROTOCOL_VERSION)
+        series += int2ba(self.interface_version, length=Length.INTERFACE_VERSION)
+        series += int2ba(self.message_type, length=Length.MESSAGE_TYPE)
+        series += int2ba(self.return_code, length=Length.RETURN_CODE)
+
+        return series.tobytes() + self.payload
 
     @classmethod
     def decode(cls, series: bytes) -> "Packet":
-        """Decodes the packet from a byte sequence.
+        """Decodes the packet from a byte sequence using bitarray.
 
         Args:
             series (bytes): The byte sequence representing the packet.
@@ -166,61 +176,49 @@ class Packet:
         Raises:
             ValueError: If the packet header is invalid.
         """
-        if len(series) < 16:
+        bits = bitarray()
+        bits.frombytes(series)
+
+        if len(bits) < cls.expected_header_length():
             raise ValueError("Invalid SOME/IP header length")
 
-        (
-            service_id,
-            method_id,
-            _,
-            client_id,
-            session_id,
-            protocol_version,
-            interface_version,
-            message_type,
-            return_code,
-        ) = struct.unpack(">HHIHHBBBB", series[:16])
+        reader = BitReader(bits)
+        service_id = reader.read(Length.SERVICE_ID)
+        method_id = reader.read(Length.METHOD_ID)
+        _ = reader.read(Length.LENGTH)
+        client_id = reader.read(Length.CLIENT_ID)
+        session_id = reader.read(Length.SESSION_ID)
+        protocol_version = reader.read(Length.PROTOCOL_VERSION)
+        interface_version = reader.read(Length.INTERFACE_VERSION)
+        message_type = reader.read(Length.MESSAGE_TYPE)
+        return_code = reader.read(Length.RETURN_CODE)
+        payload = bits[reader.index :]
 
         return cls(
-            service_id=service_id,
-            method_id=method_id,
-            client_id=client_id,
-            session_id=session_id,
-            protocol_version=protocol_version,
-            interface_version=interface_version,
-            message_type=message_type,
-            return_code=return_code,
-            payload=series[16:],
+            service_id=ba2int(service_id),
+            method_id=ba2int(method_id),
+            client_id=ba2int(client_id),
+            session_id=ba2int(session_id),
+            protocol_version=ba2int(protocol_version),
+            interface_version=ba2int(interface_version),
+            message_type=ba2int(message_type),
+            return_code=ba2int(return_code),
+            payload=payload.tobytes(),
         )
-
-    @staticmethod
-    def __validate_bit(name: str, value: int, bits: int) -> None:
-        """Validates if the given value fits within the specified bit length.
-
-        Args:
-            name (str): The name of the value.
-            value (int): The value to validate.
-            bits (int): The bit length.
-
-        Raises:
-            ValueError: If the value is out of range for the specified bit length.
-        """
-        max_value = (1 << bits) - 1
-        if not (0 <= value <= max_value):
-            raise ValueError(f"{name} must be a {bits}-bit unsigned integer")
 
     def __repr__(self) -> str:
         """Returns a string representation of the Packet object."""
         return "\n".join(
             (
-                f"{'service id':<24}: 0x{self.service_id:04X}",
-                f"{'method id':<24}: 0x{self.method_id:04X}",
-                f"{'client id':<24}: 0x{self.client_id:04X}",
-                f"{'session id':<24}: 0x{self.session_id:04X}",
-                f"{'protocol version':<24}: 0x{self.protocol_version:02X}",
-                f"{'interface version':<24}: 0x{self.interface_version:02X}",
-                f"{'message type':<24}: 0x{self.message_type:02X}",
-                f"{'return code':<24}: 0x{self.return_code:02X}",
+                f"{'service id':<24}: {self.service_id}",
+                f"{'method id':<24}: {self.method_id}",
+                f"{'length':<24}: {self.length}",
+                f"{'client id':<24}: {self.client_id}",
+                f"{'session id':<24}: {self.session_id}",
+                f"{'protocol version':<24}: {self.protocol_version}",
+                f"{'interface version':<24}: {self.interface_version}",
+                f"{'message type':<24}: {self.message_type}",
+                f"{'return code':<24}: {self.return_code}",
                 f"{'payload':<24}: {self.payload}",
             )
         )

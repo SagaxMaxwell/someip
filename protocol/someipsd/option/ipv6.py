@@ -4,7 +4,10 @@ __all__ = ["IPv6"]
 import ipaddress
 
 from bitarray import bitarray
-from bitarray.util import ba2int
+from bitarray.util import ba2int, int2ba
+
+from protocol.someipsd.option.length import Length
+from utils.bit_reader import BitReader
 
 
 class IPv6:
@@ -14,7 +17,9 @@ class IPv6:
     __slots__ = (
         "__type",
         "__discardable_flag",
+        "__bit_1_to_bit_7",
         "__ipv6_address",
+        "__reserved",
         "__transport_protocol",
         "__transport_protocol_port_number",
     )
@@ -23,34 +28,17 @@ class IPv6:
         self,
         type: int,
         discardable_flag: bitarray,
+        bit_1_to_bit_7: bitarray,
         ipv6_address: str,
+        reserved: int,
         transport_protocol: int,
         transport_protocol_port_number: int,
     ) -> None:
-        """Initializes an IPv6 instance.
-
-        Args:
-            type (int): Type of the IPv6 option.
-            discardable_flag (bitarray): A 1-bit flag indicating if the option
-                is discardable.
-            ipv6_address (str): The IPv6 address in string format (e.g., '2001:0db8::ff00:0042:8329').
-            transport_protocol (int): Transport protocol number (e.g., 6 for TCP).
-            transport_protocol_port_number (int): The transport protocol port number.
-
-        Raises:
-            ValueError: If any argument does not conform to the expected format or range.
-        """
-        self.__validate_bit("Type", type, 8)
-        self.__validate_bit("Discardable Flag", discardable_flag, 1)
-        self.__validate_bit("Transport Protocol", transport_protocol, 8)
-        self.__validate_bit(
-            "Transport Protocol Port Number", transport_protocol_port_number, 16
-        )
-        self.__validate_ipv6_address(ipv6_address)
-
         self.__type = type
         self.__discardable_flag = discardable_flag
+        self.__bit_1_to_bit_7 = bit_1_to_bit_7
         self.__ipv6_address = ipv6_address
+        self.__reserved = reserved
         self.__transport_protocol = transport_protocol
         self.__transport_protocol_port_number = transport_protocol_port_number
 
@@ -65,9 +53,19 @@ class IPv6:
         return self.__discardable_flag
 
     @property
+    def bit_1_to_bit_7(self) -> bitarray:
+        """Returns the bits 1 to 7 of the IPv6 option."""
+        return self.__bit_1_to_bit_7
+
+    @property
     def ipv6_address(self) -> str:
         """Returns the IPv6 address as a string."""
         return self.__ipv6_address
+
+    @property
+    def reserved(self) -> int:
+        """Returns the reserved field of the IPv6 option."""
+        return self.__reserved
 
     @property
     def transport_protocol(self) -> int:
@@ -84,33 +82,47 @@ class IPv6:
         """Returns the fixed length of the IPv6 option (0x0015)."""
         return 0x0015
 
+    @staticmethod
+    def expected_packet_length() -> int:
+        """Returns the expected length of the IPv6 option packet.
+
+        Returns:
+            int: The expected length of the IPv6 option packet.
+        """
+        length = sum(
+            (
+                Length.LENGTH,
+                Length.TYPE,
+                Length.DISCARDABLE_FLAG,
+                Length.BIT_1_TO_BIT_7,
+                Length.IPV6_ADDRESS,
+                Length.RESERVED,
+                Length.TRANSPORT_PROTOCOL,
+                Length.TRANSPORT_PROTOCOL_PORT_NUMBER,
+            )
+        )
+        return length
+
     def encode(self) -> bytes:
         """Encodes the IPv6 option into a byte sequence.
 
         Returns:
             bytes: The encoded byte representation of the IPv6 option.
         """
-        packet = bitarray()
-        for feild, bits in zip(
-            (
-                self.length,
-                self.type,
-                self.discardable_flag,
-                bitarray("0" * 7),
-                self.ipv6_address,
-                bitarray("0" * 8),
-                self.transport_protocol,
-                self.transport_protocol_port_number,
-            ),
-            (16, 8, 1, 7, 128, 8, 8, 16),
-        ):
-            if isinstance(feild, bitarray):
-                packet.extend(feild)
-            elif isinstance(feild, int):
-                packet.frombytes(feild.to_bytes(bits // 8, "big"))
-            elif isinstance(feild, str):
-                packet.frombytes(ipaddress.ip_address(feild).packed)
-        return packet.tobytes()
+        series = bitarray()
+        series += int2ba(self.length, length=Length.LENGTH)
+        series += int2ba(self.type, length=Length.TYPE)
+        series += self.discardable_flag
+        series += self.bit_1_to_bit_7
+        series.frombytes(ipaddress.ip_address(self.ipv6_address).packed)
+        series += int2ba(self.reserved, length=Length.RESERVED)
+        series += int2ba(self.transport_protocol, length=Length.TRANSPORT_PROTOCOL)
+        series += int2ba(
+            self.transport_protocol_port_number,
+            length=Length.TRANSPORT_PROTOCOL_PORT_NUMBER,
+        )
+
+        return series.tobytes()
 
     @classmethod
     def decode(cls, series: bytes) -> "IPv6":
@@ -125,65 +137,45 @@ class IPv6:
         Raises:
             ValueError: If the length of the byte sequence is invalid.
         """
-        if len(series) != 24:
-            raise ValueError("Invalid IPv6 Option length")
         packet = bitarray()
         packet.frombytes(series)
-        type = ba2int(packet[16:24])
-        discardable_flag = packet[24:25]
-        ipv6_address = ipaddress.IPv6Address(packet[32:160].tobytes())
-        transport_protocol = ba2int(packet[168:176])
-        transport_protocol_port_number = ba2int(packet[176:192])
-        return cls(
-            type,
-            discardable_flag,
-            ipv6_address,
-            transport_protocol,
-            transport_protocol_port_number,
+
+        if len(packet) != cls.expected_packet_length():
+            raise ValueError("Invalid message length")
+
+        reader = BitReader(packet)
+        _ = reader.read(Length.LENGTH)
+        type_ = ba2int(reader.read(Length.TYPE))
+        discardable_flag = reader.read(Length.DISCARDABLE_FLAG)
+        bit_1_to_bit_7 = reader.read(Length.BIT_1_TO_BIT_7)
+        ipv6_address = reader.read(Length.IPV6_ADDRESS).tobytes()
+        reserved = ba2int(reader.read(Length.RESERVED))
+        transport_protocol = ba2int(reader.read(Length.TRANSPORT_PROTOCOL))
+        transport_protocol_port_number = ba2int(
+            reader.read(Length.TRANSPORT_PROTOCOL_PORT_NUMBER)
         )
 
-    @staticmethod
-    def __validate_bit(name: str, value: int | bitarray, bits: int) -> None:
-        """Validates that a value fits within a specified bit size.
-
-        Args:
-            name (str): The name of the value being validated.
-            value (int | bitarray): The value to validate.
-            bits (int): The number of bits the value should occupy.
-
-        Raises:
-            ValueError: If the value does not fit within the specified bit range.
-        """
-        if isinstance(value, int):
-            max_value = (1 << bits) - 1
-            if not (0 <= value <= max_value):
-                raise ValueError(f"{name} must be a {bits}-bit unsigned integer")
-        elif isinstance(value, bitarray):
-            if len(value) != bits:
-                raise ValueError(f"{name} must be a {bits}-bit bitarray")
-
-    @staticmethod
-    def __validate_ipv6_address(ipv6_address: str) -> None:
-        """Validates that the given string is a valid IPv6 address.
-
-        Args:
-            ipv6_address (str): The IPv6 address to validate.
-
-        Raises:
-            ValueError: If the provided string is not a valid IPv6 address.
-        """
-        if ipaddress.ip_address(ipv6_address).version != 6:
-            raise ValueError("Invalid IPv6 address")
+        return cls(
+            type=type_,
+            discardable_flag=discardable_flag,
+            bit_1_to_bit_7=bit_1_to_bit_7,
+            ipv6_address=ipv6_address,
+            reserved=reserved,
+            transport_protocol=transport_protocol,
+            transport_protocol_port_number=transport_protocol_port_number,
+        )
 
     def __repr__(self) -> str:
         """Returns a string representation of the IPv6 object."""
         return "\n".join(
             (
-                f"{'length':<32}: 0x{self.length:04X}",
-                f"{'type':<32}: 0x{self.type:02X}",
+                f"{'length':<32}: {self.length}",
+                f"{'type':<32}: {self.type}",
                 f"{'discardable flag':<32}: {self.discardable_flag}",
+                f"{'bit 1 to bit 7':<32}: {self.bit_1_to_bit_7}",
                 f"{'ipv6 address':<32}: {self.ipv6_address}",
-                f"{'transport protocol':<32}: 0x{self.transport_protocol:02X}",
-                f"{'transport protocol port number':<32}: 0x{self.transport_protocol_port_number:04X}",
+                f"{'reserved':<32}: {self.reserved}",
+                f"{'transport protocol':<32}: {self.transport_protocol}",
+                f"{'transport protocol port number':<32}: {self.transport_protocol_port_number}",
             )
         )

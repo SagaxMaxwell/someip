@@ -10,7 +10,7 @@ class Length(IntEnum):
     LENGTH = 16
     TYPE = 8
     DISCARDABLE_FLAG = 1
-    RESERVED_BITS_1_TO_7 = 7
+    BIT_1_TO_BIT_7 = 7
     IPV4_ADDRESS = 32
     IPV6_ADDRESS = 128
     RESERVED = 8

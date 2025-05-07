@@ -7,9 +7,11 @@ from enum import IntEnum
 class Length(IntEnum):
     """Enumeration for message fields with associated bit lengths."""
 
-    MESSAGE_ID = 32
+    SERVICE_ID = 16
+    METHOD_ID = 16
     LENGTH = 32
-    REQUEST_ID = 32
+    CLIENT_ID = 16
+    SESSION_ID = 16
     PROTOCOL_VERSION = 8
     INTERFACE_VERSION = 8
     MESSAGE_TYPE = 8
