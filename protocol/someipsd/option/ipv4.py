@@ -7,7 +7,7 @@ from bitarray import bitarray
 from bitarray.util import ba2int, int2ba
 
 from protocol.someipsd.option.length import Length
-from utils.bit_reader import BitReader
+from utils.series_reader import SeriesReader
 
 
 class IPv4:
@@ -143,12 +143,14 @@ class IPv4:
         if len(packet) != cls.expected_packet_length():
             raise ValueError("Invalid message length")
 
-        reader = BitReader(packet)
+        reader = SeriesReader(packet)
         _ = reader.read(Length.LENGTH)
         type_ = ba2int(reader.read(Length.TYPE))
         discardable_flag = reader.read(Length.DISCARDABLE_FLAG)
         bit_1_to_bit_7 = reader.read(Length.BIT_1_TO_BIT_7)
-        ipv4_address = reader.read(Length.IPV4_ADDRESS).tobytes()
+        ipv4_address = str(
+            ipaddress.ip_address(reader.read(Length.IPV4_ADDRESS).tobytes())
+        )
         reserved = ba2int(reader.read(Length.RESERVED))
         transport_protocol = ba2int(reader.read(Length.TRANSPORT_PROTOCOL))
         transport_protocol_port_number = ba2int(

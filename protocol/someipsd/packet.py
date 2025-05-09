@@ -5,7 +5,7 @@ from bitarray import bitarray
 from bitarray.util import ba2int, int2ba
 
 from protocol.someipsd.length import Length
-from utils.bit_reader import BitReader
+from utils.series_reader import SeriesReader
 
 
 class Packet:
@@ -205,7 +205,7 @@ class Packet:
         if len(packet) < cls.expected_minimum_length():
             raise ValueError("Invalid SOME/IP SD minimum length")
 
-        reader = BitReader(packet)
+        reader = SeriesReader(packet)
         service_id = ba2int(reader.read(Length.SERVICE_ID))
         method_id = ba2int(reader.read(Length.METHOD_ID))
         _ = ba2int(reader.read(Length.LENGTH))

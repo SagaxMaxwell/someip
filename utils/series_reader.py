@@ -1,10 +1,10 @@
-__all__ = ["BitReader"]
+__all__ = ["SeriesReader"]
 
 
 from bitarray import bitarray
 
 
-class BitReader:
+class SeriesReader:
     def __init__(self, bits: bitarray) -> None:
         self.__bits = bits
         self.__index = 0

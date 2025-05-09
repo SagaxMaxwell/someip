@@ -5,7 +5,7 @@ from bitarray import bitarray
 from bitarray.util import ba2int, int2ba
 
 from protocol.someip.length import Length
-from utils.bit_reader import BitReader
+from utils.series_reader import SeriesReader
 
 
 class Packet:
@@ -182,7 +182,7 @@ class Packet:
         if len(bits) < cls.expected_header_length():
             raise ValueError("Invalid SOME/IP header length")
 
-        reader = BitReader(bits)
+        reader = SeriesReader(bits)
         service_id = reader.read(Length.SERVICE_ID)
         method_id = reader.read(Length.METHOD_ID)
         _ = reader.read(Length.LENGTH)

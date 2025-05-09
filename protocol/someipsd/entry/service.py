@@ -5,7 +5,7 @@ from bitarray import bitarray
 from bitarray.util import ba2int, int2ba
 
 from protocol.someipsd.entry.length import Length
-from utils.bit_reader import BitReader
+from utils.series_reader import SeriesReader
 
 
 class Service:
@@ -203,7 +203,7 @@ class Service:
         if len(packet) != cls.expected_packet_length():
             raise ValueError("Invalid service entry length")
 
-        reader = BitReader(packet)
+        reader = SeriesReader(packet)
         type_field = ba2int(reader.read(Length.TYPE_FIELD))
         index_first_option_run = ba2int(reader.read(Length.INDEX_FIRST_OPTION_RUN))
         index_second_option_run = ba2int(reader.read(Length.INDEX_SECOND_OPTION_RUN))
